@@ -15,14 +15,16 @@ Collection of image generation extensions for Newelle and Nyarch Assistant
 
 ⚠️ *These extensions are not made to be used at the same time, always disable one*
 
-- [Pollinations](#pollinations) free online [open source image generator](https://github.com/pollinations/pollinations), no api key, **good to try out image generation**, no setup
+- [Pollinations](#pollinations) online [open source image generator](https://github.com/pollinations/pollinations), **good to try out image generation**, requires a free API key from [enter.pollinations.ai](https://enter.pollinations.ai/)
 - [Stable Diffusion WebUI](#stable-diffusion-webui) uses the API of the self-hostable UI by [automatic111](https://github.com/AUTOMATIC1111/stable-diffusion-webui). **Locally run, more advanced, requires some setup**
 
 ### Pollinations
 
 - Download and Install [Newelle](https://flathub.org/apps/io.github.qwersyk.Newelle)
+- Get a free API key from [enter.pollinations.ai](https://enter.pollinations.ai/)
 - Download the [python file](https://raw.githubusercontent.com/FrancescoCaracciolo/Newelle-Image-Generator/refs/heads/main/polliations.py) in the repository
-- Load the extension
+- Load the extension and set your API key in the extension settings
+- Optionally choose a model (default: `zimage`). Available models: `flux`, `turbo`, `gptimage`, `kontext`, `seedream`, `nanobanana`, `nanobanana-pro`, `seedream-pro`, `gptimage-large`, `zimage`, `klein`, `klein-large`, `imagen-4`, `grok-imagine`
 Then you can ask the AI to generate an image of something:
 <img width="563" height="502" alt="image" src="https://github.com/user-attachments/assets/e981b022-afe8-4bea-b3e8-544fff5feba9" />
 

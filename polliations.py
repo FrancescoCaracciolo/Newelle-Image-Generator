@@ -10,7 +10,7 @@ from .handlers import ExtraSettings, PromptDescription
 class PollinationsImageGeneratorExtension(NewelleExtension):
     name = "Pollinations Image Generator"
     id = "pollinationsimgadv"
-
+    models = ["flux", "turbo", "gptimage", "kontext", "seedream", "nanobanana", "nanobanana-pro", "seedream-pro", "gptimage-large", "zimage", "klein", "klein-large", "imagen-4", "grok-imagine"]
     def __init__(self, pip_path: str, extension_path: str, settings: dict):
         super().__init__(pip_path, extension_path, settings)
         self.cache_dir = os.path.join(self.extension_path, "generated_images")
@@ -26,8 +26,18 @@ class PollinationsImageGeneratorExtension(NewelleExtension):
 
     def get_extra_settings(self) -> list:
         return [
+            ExtraSettings.EntrySetting("api-key", "API Key", "Pollinations API key from enter.pollinations.ai (required)", ""),
+            ExtraSettings.ComboSetting("model", "Model", "Choose the model to use for image generation", self.models, "zimage"),
             ExtraSettings.MultilineEntrySetting("positive-prompt", "Positive Prompt Template", "Prompt template for positive prompt, [input] will be replaced with the AI input", "[input]"),
-            #ExtraSettings.MultilineEntrySetting("negative-prompt", "Negative Prompt", "Prompt template for negative prompt", ""),
+            ExtraSettings.MultilineEntrySetting("negative-prompt", "Negative Prompt", "Negative prompt to exclude from the image", ""),
+            ExtraSettings.NestedSetting("advanced_settings", "Advanced Settings", "Advanced image generation settings", [
+                ExtraSettings.ScaleSetting("width", "Width", "Width of the generated image", 400, 256, 2048, 0),
+                ExtraSettings.ScaleSetting("height", "Height", "Height of the generated image", 400, 256, 2048, 0),
+                ExtraSettings.EntrySetting("seed", "Seed", "Seed for reproducible results (-1 for random)", "-1"),
+                ExtraSettings.EntrySetting("enhance", "Enhance", "Enhance the prompt with more detail (true/false)", "false"),
+                ExtraSettings.EntrySetting("quality", "Quality", "Image quality (standard/hd)", "standard"),
+                ExtraSettings.EntrySetting("transparent", "Transparent", "Transparent background if supported (true/false)", "false"),
+            ])
         ]
 
     def restore_gtk_widget(self, codeblock: str, lang: str, msg_uuid: str) -> Gtk.Widget | None:
@@ -46,8 +56,49 @@ class PollinationsImageGeneratorExtension(NewelleExtension):
     
     def generate_image(self, prompt: str, widget, msg_uuid):
         prompt = self.get_setting("positive-prompt").replace("[input]", prompt)
-        url = "https://image.pollinations.ai/prompt/" + urllib.parse.quote(prompt)
         
+        # Build query parameters for the new API
+        params = {}
+        
+        api_key = self.get_setting("api-key")
+        if api_key:
+            params["key"] = api_key
+        
+        model = self.get_setting("model")
+        if model:
+            params["model"] = model
+        
+        negative_prompt = self.get_setting("negative-prompt")
+        if negative_prompt:
+            params["negative_prompt"] = negative_prompt
+        
+        width = self.get_setting("width")
+        if width and int(width) > 0:
+            params["width"] = int(width)
+        
+        height = self.get_setting("height")
+        if height and int(height) > 0:
+            params["height"] = int(height)
+        
+        seed = self.get_setting("seed")
+        if seed and str(seed) != "-1":
+            params["seed"] = int(seed)
+        
+        enhance = self.get_setting("enhance")
+        if enhance and enhance.lower() == "true":
+            params["enhance"] = "true"
+        
+        quality = self.get_setting("quality")
+        if quality and quality != "standard":
+            params["quality"] = quality
+        
+        transparent = self.get_setting("transparent")
+        if transparent and transparent.lower() == "true":
+            params["transparent"] = "true"
+        
+        url = "https://gen.pollinations.ai/image/" + urllib.parse.quote(prompt)
+        if params:
+            url += "?" + urllib.parse.urlencode(params)
         def on_image_loaded(success):
             if success:
                 print("Image loaded successfully")
@@ -71,7 +122,6 @@ class ImageGeneratorWidget(Gtk.Box):
         self.current_pixbuf = None
         self.current_url = None
         self.prompt = None  # Store the original prompt
-        
         # Set up CSS for loading animation
         self.setup_css()
          
@@ -105,6 +155,7 @@ class ImageGeneratorWidget(Gtk.Box):
         # Create the actual image widget
         self.image = Gtk.Image()
         self.image.set_size_request(self.width, self.height)
+        self.image.set_pixel_size(max(self.width, self.height))
         
         # Create the image overlay 
         self.overlay_buttons = Gtk.Box(valign=Gtk.Align.START, halign=Gtk.Align.END)
