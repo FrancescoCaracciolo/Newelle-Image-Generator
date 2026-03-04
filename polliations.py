@@ -1,4 +1,5 @@
 from .extensions import NewelleExtension
+from .tools import Tool, ToolResult
 from gi.repository import GdkPixbuf, Gtk, Gdk, GLib
 from .ui import load_image_with_callback 
 import urllib.request
@@ -20,9 +21,7 @@ class PollinationsImageGeneratorExtension(NewelleExtension):
         return ["generateimage"]
 
     def get_additional_prompts(self) -> list:
-        return [
-            PromptDescription("generate-image-pollination", "Generate Image", "Generate images using Pollinations AI", "- To generate images use: \n```generateimage\nprompt\n```\nUse detailed prompts, with english words separated by commas"),
-        ]
+        return []
 
     def get_extra_settings(self) -> list:
         return [
@@ -39,6 +38,39 @@ class PollinationsImageGeneratorExtension(NewelleExtension):
                 ExtraSettings.EntrySetting("transparent", "Transparent", "Transparent background if supported (true/false)", "false"),
             ])
         ]
+
+    def generate_image_tool(self, prompt: str):
+        msg_uuid = self.ui_controller.get_current_message_id()
+        widget = ImageGeneratorWidget(width=400, height=400)
+        widget.set_prompt(prompt)
+        result = ToolResult()
+        result.set_widget(widget)
+        
+        def generate():
+            self.generate_image(prompt, widget, msg_uuid)
+        
+        Thread(target=generate).start()
+        return result
+
+    def restore_image_tool(self, msg_id, prompt: str):
+        widget = self.restore_gtk_widget(prompt, "generateimage", msg_id)
+        return ToolResult(widget=widget)
+
+    def get_tools(self) -> list:
+        return [Tool(
+            "generate_image",
+            "Generate an image from a text prompt using Pollinations AI. Use detailed, descriptive prompts with English words separated by commas.",
+            self.generate_image_tool,
+            title="Generate Image",
+            restore_func=self.restore_image_tool,
+            icon_name="insert-image-symbolic"
+        )]
+
+    def provides_both_widget_and_answer(self, codeblock: str, lang: str) -> bool:
+        return True
+
+    def get_answer(self, codeblock: str, lang: str) -> str | None:
+        return f"Generating image with prompt: {codeblock}"
 
     def restore_gtk_widget(self, codeblock: str, lang: str, msg_uuid: str) -> Gtk.Widget | None:
         widget = ImageGeneratorWidget(width=400, height=400)
